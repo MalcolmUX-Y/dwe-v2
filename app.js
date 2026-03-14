@@ -572,6 +572,7 @@ async function runParse() {
     // 2. Send to Edge Function
     const result = await callEdgeFunction(text, state.session);
     state.parseResult = result;
+    window._lastResult = result;
     state.parsing     = false;
     renderApp();
   } catch (err) {
