@@ -589,10 +589,15 @@ async function runParse() {
 function exportTxt() {
   const doc   = state.parseResult?.document;
   if (!doc) return;
+  // Flatten containers + orphanItems
+const items = [
+  ...(doc.containers ?? []).flatMap(c => c.items),
+  ...(doc.orphanItems ?? []),
+];
 
   const lines = [`${doc.title}`, "=".repeat(48), ""];
 
-  for (const item of doc.items) {
+  for (const item of items) {
     const date = formatDate(item.date) ?? "—";
     lines.push(`[${item.kind.toUpperCase()}] ${date}`);
     lines.push(item.text);
@@ -606,6 +611,11 @@ function exportTxt() {
 function exportPdf() {
   const doc = state.parseResult?.document;
   if (!doc || !window.jspdf) return;
+  // Flatten containers + orphanItems
+const items = [
+  ...(doc.containers ?? []).flatMap(c => c.items),
+  ...(doc.orphanItems ?? []),
+];
 
   const { jsPDF } = window.jspdf;
   const pdf       = new jsPDF({ unit: "mm", format: "a4" });
@@ -617,7 +627,7 @@ function exportPdf() {
   pdf.setFontSize(16); pdf.setFont("helvetica", "bold");
   pdf.text(doc.title, L, y); y += 12;
 
-  for (const item of doc.items) {
+  for (const item of items) {
     check();
     pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
     pdf.text(`[${item.kind.toUpperCase()}]  ${formatDate(item.date) ?? ""}`, L, y); y += lh;
