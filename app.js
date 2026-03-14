@@ -372,7 +372,10 @@ function renderParse() {
 
 function renderReview() {
   const doc   = state.parseResult?.document;
-  const items = doc?.items ?? [];
+  const items = [
+  ...(doc?.containers ?? []).flatMap(c => c.items),
+  ...(doc?.orphanItems ?? []),
+];
 
   const filtered = state.filterKind === "all"
     ? items
@@ -427,7 +430,10 @@ function renderReview() {
 
 function renderExport() {
   const doc   = state.parseResult?.document;
-  const items = doc?.items ?? [];
+  const items = [
+  ...(doc?.containers ?? []).flatMap(c => c.items),
+  ...(doc?.orphanItems ?? []),
+];
 
   return `
     <div>
