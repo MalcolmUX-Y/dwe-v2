@@ -119,7 +119,7 @@ async function callEdgeFunction(text, session) {
     headers: {
       "Content-Type":  "application/json",
       "apikey":        SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${session.access_token}`,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({
       text,
