@@ -375,29 +375,44 @@ function renderReview() {
 ];
 
     const filtered = items.filter((i) => {
-    const text = i.text?.trim().toLowerCase() || "";
+  const text = i.text?.trim() || "";
+  const lower = text.toLowerCase();
 
-    if (!text) return false;
-    if (["dato", "referat", "deltagere"].includes(text)) return false;
+  if (!text) return false;
 
-    const hasWorkflowKind =
-      i.kind === "action" ||
-      i.kind === "deadline" ||
-      i.kind === "decision";
+  // Fjern dokumentheader / metadata
+  if (
+    lower.includes("referat") &&
+    lower.includes("dato") &&
+    lower.includes("deltagere")
+  ) return false;
 
-    const hasWorkflowScore =
-      (i.scores?.action ?? 0) >= 0.25 ||
-      (i.scores?.deadline ?? 0) >= 0.25 ||
-      (i.scores?.decision ?? 0) >= 0.25;
+  // Fjern rene sektionsoverskrifter som "4. Næste møde"
+  if (/^\d+\.\s+[^\n.:]+$/i.test(text)) return false;
 
-    return Boolean(
-      i.responsible ||
-      i.date?.iso ||
-      i.date?.dateHint ||
-      hasWorkflowKind ||
-      hasWorkflowScore
-    );
-  });
+  const hasWorkflowKind =
+    i.kind === "action" ||
+    i.kind === "deadline" ||
+    i.kind === "decision";
+
+  const hasWorkflowScore =
+    (i.scores?.action ?? 0) >= 0.25 ||
+    (i.scores?.deadline ?? 0) >= 0.25 ||
+    (i.scores?.decision ?? 0) >= 0.25;
+
+  // behold også noter som "Intet til eventuelt"
+  const isRelevantNote =
+    /^(?:intet til|ingen bemærkninger|ingen kommentarer)/i.test(lower);
+
+  return Boolean(
+    i.responsible ||
+    i.date?.iso ||
+    i.date?.dateHint ||
+    hasWorkflowKind ||
+    hasWorkflowScore ||
+    isRelevantNote
+  );
+});
 
   return `
     <div>
