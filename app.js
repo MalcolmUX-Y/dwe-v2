@@ -374,10 +374,30 @@ function renderReview() {
   ...(doc?.orphanItems ?? []),
 ];
 
-  const filtered = items.filter(i =>
-  (i.responsible || i.date?.iso || i.date?.dateHint) &&
-  i.text?.trim().toLowerCase() !== "dato"
-);
+    const filtered = items.filter((i) => {
+    const text = i.text?.trim().toLowerCase() || "";
+
+    if (!text) return false;
+    if (["dato", "referat", "deltagere"].includes(text)) return false;
+
+    const hasWorkflowKind =
+      i.kind === "action" ||
+      i.kind === "deadline" ||
+      i.kind === "decision";
+
+    const hasWorkflowScore =
+      (i.scores?.action ?? 0) >= 0.25 ||
+      (i.scores?.deadline ?? 0) >= 0.25 ||
+      (i.scores?.decision ?? 0) >= 0.25;
+
+    return Boolean(
+      i.responsible ||
+      i.date?.iso ||
+      i.date?.dateHint ||
+      hasWorkflowKind ||
+      hasWorkflowScore
+    );
+  });
 
   return `
     <div>
