@@ -515,6 +515,24 @@ html, body {
   gap: 24px;
 }
 
+.review-kind-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0 18px;
+}
+
+.review-kind-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .summary-stat-label {
   font-family: var(--mono);
   font-size: 9px;
