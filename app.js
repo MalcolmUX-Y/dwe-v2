@@ -376,7 +376,7 @@ function renderReview() {
 
   const filtered = items.filter(i =>
   (i.responsible || i.date?.iso || i.date?.dateHint) &&
-  i.text?.toLowerCase() !== "dato"
+  i.text?.trim().toLowerCase() !== "dato"
 );
 
   return `
@@ -384,7 +384,7 @@ function renderReview() {
       <p class="screen-eyebrow">Step 3</p>
       <h1 class="screen-title">Review extracted items</h1>
       <p class="screen-body">
-        ${items.length} item${items.length !== 1 ? "s" : ""} extracted.
+        ${filtered.length} item${filtered.length !== 1 ? "s" : ""} extracted.
         Review what the parser found before generating your workflow.
       </p>
     </div>
@@ -392,7 +392,7 @@ function renderReview() {
     <div class="summary-box">
       <div>
         <p class="summary-stat-label">Items</p>
-        <p class="summary-stat-value">${items.length}</p>
+        <p class="summary-stat-value">${filtered.length}</p>
       </div>
       <div>
         <p class="summary-stat-label">Avg confidence</p>
