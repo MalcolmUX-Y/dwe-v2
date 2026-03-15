@@ -375,7 +375,8 @@ function renderReview() {
 ];
 
   const filtered = items.filter(i =>
-  i.responsible || i.date?.iso || i.date?.dateHint
+  (i.responsible || i.date?.iso || i.date?.dateHint) &&
+  i.text?.toLowerCase() !== "dato"
 );
 
   return `
