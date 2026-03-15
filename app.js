@@ -204,23 +204,20 @@ function renderItemCard(item) {
   return `
     <article class="item-card">
       <div class="item-card-header">
-        ${renderKindChip(item.kind)}
         ${dateStr ? `<span class="item-date">${escHtml(dateStr)}</span>` : ""}
       </div>
 
       <p class="item-text">${escHtml(item.text || "—")}</p>
 
-      <div class="item-meta">
-        ${respStr ? `
-          <div class="item-meta-field">
-            <span class="item-meta-field-label">Responsible</span>
-            <span>${escHtml(respStr)}</span>
-          </div>` : ""}
-        <div class="item-meta-field">
-          <span class="item-meta-field-label">Confidence</span>
-          ${renderConfidenceBar(item.confidence)}
+      ${(respStr || item.confidence != null) ? `
+        <div class="item-meta">
+          ${respStr ? `
+            <div class="item-meta-field">
+              <span class="item-meta-field-label">Responsible</span>
+              <span>${escHtml(respStr)}</span>
+            </div>` : ""}
         </div>
-      </div>
+      ` : ""}
 
       <details class="source-toggle">
         <summary>Source text</summary>
@@ -377,11 +374,7 @@ function renderReview() {
   ...(doc?.orphanItems ?? []),
 ];
 
-  const filtered = state.filterKind === "all"
-    ? items
-    : items.filter(i => i.kind === state.filterKind);
-
-  const kinds    = ["all", ...new Set(items.map(i => i.kind))];
+  const filtered = items;
 
   return `
     <div>
@@ -406,12 +399,6 @@ function renderReview() {
         <p class="summary-stat-label">AI assisted</p>
         <p class="summary-stat-value">${state.parseResult?.meta?.aiAssistedCount ?? 0}</p>
       </div>
-    </div>
-
-    <div class="filter-bar">
-      ${kinds.map(k => `
-        <button class="filter-btn ${state.filterKind === k ? "is-active" : ""}"
-                data-kind="${k}">${k}</button>`).join("")}
     </div>
 
     <div class="item-list">
