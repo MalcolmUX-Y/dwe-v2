@@ -3,6 +3,8 @@
 // Vanilla JS, no framework. ES modules.
 // ============================================================
 
+import { renderReviewStep } from "./review.js";
+
 // ------------------------------------------------------------
 // Config
 // ------------------------------------------------------------
@@ -241,7 +243,12 @@ function renderApp() {
   switch (state.step) {
     case 1: screen.innerHTML = renderUpload();    break;
     case 2: screen.innerHTML = renderParse();     break;
-    case 3: screen.innerHTML = renderReview();    break;
+    case 3:
+  screen.innerHTML = renderReviewStep(state, {
+    escHtml,
+    formatDate
+  });
+  break;
     case 4: screen.innerHTML = renderExport();    break;
     default: screen.innerHTML = renderUpload();
   }
