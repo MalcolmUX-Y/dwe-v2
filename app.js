@@ -374,7 +374,9 @@ function renderReview() {
   ...(doc?.orphanItems ?? []),
 ];
 
-  const filtered = items;
+  const filtered = items.filter(i =>
+  i.responsible || i.date?.iso || i.date?.dateHint
+);
 
   return `
     <div>
