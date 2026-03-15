@@ -13,10 +13,13 @@ function isObviousMetadata(text) {
   const lower = text.toLowerCase();
 
   if (
+  lower.startsWith("referat") ||
+  (
     lower.includes("referat") &&
     lower.includes("dato") &&
     lower.includes("deltagere")
-  ) {
+  )
+) {
     return true;
   }
 
@@ -58,7 +61,13 @@ function hasStrongSignals(item) {
   );
 }
 
+function isStatusLine(text) {
+  return /^(intet til|ingen bemærkninger|ingen kommentarer)/i.test(text);
+}
 function getItemMeta(item) {
+  if (isStatusLine(item.text || "")) {
+    return { icon: "📝", label: "Note", className: "kind-context" };
+  }
   switch (item?.kind) {
     case "action":
       return { icon: "⚡", label: "Action", className: "kind-action" };
@@ -68,7 +77,8 @@ function getItemMeta(item) {
       return { icon: "✓", label: "Decision", className: "kind-decision" };
     default:
       return { icon: "📝", label: "Note", className: "kind-context" };
-  }
+  } 
+  
 }
 
 function groupReviewItems(items) {
@@ -162,10 +172,19 @@ function renderReviewCard(item, deps) {
   `;
 }
 
+function getKindCounts(items) {
+  return {
+    action: items.filter((item) => item?.kind === "action").length,
+    deadline: items.filter((item) => item?.kind === "deadline").length,
+    decision: items.filter((item) => item?.kind === "decision").length,
+  };
+}
+
 export function renderReviewStep(state, deps) {
   const doc = state.parseResult?.document;
   const items = flattenItems(doc);
   const groups = groupReviewItems(items);
+  const counts = getKindCounts(groups.ready);
 
   return `
     <div>
@@ -174,6 +193,12 @@ export function renderReviewStep(state, deps) {
       <p class="screen-body">
         Confirm the items that look workflow-relevant before generating your workflow.
       </p>
+    </div>
+
+        <div class="review-kind-bar">
+      <div class="review-kind-pill">⚡ ${counts.action} actions</div>
+      <div class="review-kind-pill">📅 ${counts.deadline} deadlines</div>
+      <div class="review-kind-pill">✓ ${counts.decision} decisions</div>
     </div>
 
     <div class="summary-box">
