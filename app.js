@@ -201,7 +201,7 @@ function renderConfidenceBar(confidence) {
 
 function renderItemCard(item) {
   const dateStr = formatDate(item.date);
-  const respStr = item.responsible;
+  const respStr = item.responsible?.label ?? null;
 
   return `
     <article class="item-card">
@@ -412,7 +412,7 @@ function renderReview() {
     /^(?:intet til|ingen bemærkninger|ingen kommentarer)/i.test(lower);
 
   return Boolean(
-    i.responsible ||
+    i.responsible?.label ||
     i.date?.iso ||
     i.date?.dateHint ||
     hasWorkflowKind ||
@@ -633,7 +633,7 @@ const items = [
     const date = formatDate(item.date) ?? "—";
     lines.push(`[${item.kind.toUpperCase()}] ${date}`);
     lines.push(item.text);
-    if (item.responsible) lines.push(`Responsible: ${item.responsible}`);
+    if (item.responsible?.label) lines.push(`Responsible: ${item.responsible.label}`);
     lines.push("");
   }
 
@@ -667,10 +667,10 @@ const items = [
     pdf.setFontSize(11); pdf.setFont("helvetica", "bold");
     pdf.splitTextToSize(item.text, R - L).forEach(l => { check(); pdf.text(l, L, y); y += lh; });
 
-    if (item.responsible) {
-      pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`Responsible: ${item.responsible}`, L, y); y += lh;
-    }
+    if (item.responsible?.label) {
+  pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
+  pdf.text(`Responsible: ${item.responsible.label}`, L, y); y += lh;
+}
     y += 4;
   }
 
