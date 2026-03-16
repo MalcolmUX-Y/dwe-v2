@@ -53,7 +53,7 @@ function hasWorkflowScore(item) {
 
 function hasStrongSignals(item) {
   return Boolean(
-    item?.responsible ||
+    item?.responsible?.label ||
     item?.date?.iso ||
     item?.date?.dateHint ||
     hasWorkflowKind(item) ||
@@ -143,7 +143,7 @@ function renderSection(title, items, deps, options = {}) {
 function renderReviewCard(item, deps) {
   const { escHtml, formatDate } = deps;
   const dateStr = formatDate(item.date);
-  const respStr = item.responsible;
+  const respStr = item.responsible?.label ?? null;
   const meta = getItemMeta(item);
 
   return `
