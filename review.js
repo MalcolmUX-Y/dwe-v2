@@ -126,19 +126,13 @@ function groupReviewItems(items) {
 function renderSection(title, items, deps, options = {}) {
   const { emptyText = "No items in this section." } = options;
 
-  let lastSection = null;
-
   return `
     <section class="review-section">
       <div class="section-label">${title}</div>
       <div class="item-list">
         ${
           items.length
-            ? items.map((item) => {
-                const section = item.context?.sectionTitle ?? lastSection;
-                if (section) lastSection = section;
-                return renderReviewCard(item, deps, section);
-              }).join("")
+            ? items.map((item) => renderReviewCard(item, deps)).join("")
             : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
         }
       </div>
@@ -146,8 +140,7 @@ function renderSection(title, items, deps, options = {}) {
   `;
 }
 
-function renderReviewCard(item, deps, section) {
-  console.log("REVIEW ITEM:", item);
+function renderReviewCard(item, deps) {
   const { escHtml, formatDate } = deps;
   const dateStr = formatDate(item.date);
   const respStr = item.responsible?.label ?? null;
@@ -159,12 +152,6 @@ function renderReviewCard(item, deps, section) {
         <span class="kind-chip ${meta.className}">${meta.icon} ${meta.label}</span>
         ${dateStr ? `<span class="item-date">${escHtml(dateStr)}</span>` : ""}
       </div>
-
-      ${section ? `
-  <div class="item-section">
-    ${escHtml(section)}
-  </div>
-` : ""}
 
       <p class="item-text">${escHtml(item.text || "—")}</p>
 
