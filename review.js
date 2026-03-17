@@ -141,6 +141,7 @@ function renderSection(title, items, deps, options = {}) {
 }
 
 function renderReviewCard(item, deps) {
+  console.log("REVIEW ITEM:", item);
   const { escHtml, formatDate } = deps;
   const dateStr = formatDate(item.date);
   const respStr = item.responsible?.label ?? null;
