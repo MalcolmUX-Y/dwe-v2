@@ -183,7 +183,20 @@ function getKindCounts(items) {
 export function renderReviewStep(state, deps) {
   const doc = state.parseResult?.document;
   const items = flattenItems(doc);
+  console.log(
+  "[review] flat items",
+  items.map((i) => ({
+    kind: i.kind,
+    text: i.text,
+    date: i.date?.iso ?? i.date?.dateHint ?? null,
+  }))
+);
   const groups = groupReviewItems(items);
+  console.log("[review] grouped", {
+  ready: groups.ready.map((i) => i.text),
+  review: groups.review.map((i) => i.text),
+  hidden: groups.hidden.map((i) => i.text),
+});
   const counts = getKindCounts(groups.ready);
 
   return `
