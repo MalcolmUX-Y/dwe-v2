@@ -153,6 +153,12 @@ function renderReviewCard(item, deps) {
         ${dateStr ? `<span class="item-date">${escHtml(dateStr)}</span>` : ""}
       </div>
 
+      ${item.context?.sectionTitle ? `
+  <div class="item-section">
+    ${escHtml(item.context.sectionTitle)}
+  </div>
+` : ""}
+
       <p class="item-text">${escHtml(item.text || "—")}</p>
 
       ${respStr ? `
