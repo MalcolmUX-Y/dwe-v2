@@ -126,13 +126,19 @@ function groupReviewItems(items) {
 function renderSection(title, items, deps, options = {}) {
   const { emptyText = "No items in this section." } = options;
 
+  let lastSection = null;
+
   return `
     <section class="review-section">
       <div class="section-label">${title}</div>
       <div class="item-list">
         ${
           items.length
-            ? items.map((item) => renderReviewCard(item, deps)).join("")
+            ? items.map((item) => {
+                const section = item.context?.sectionTitle ?? lastSection;
+                if (section) lastSection = section;
+                return renderReviewCard(item, deps, section);
+              }).join("")
             : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
         }
       </div>
@@ -140,7 +146,7 @@ function renderSection(title, items, deps, options = {}) {
   `;
 }
 
-function renderReviewCard(item, deps) {
+function renderReviewCard(item, deps, section) {
   console.log("REVIEW ITEM:", item);
   const { escHtml, formatDate } = deps;
   const dateStr = formatDate(item.date);
@@ -154,9 +160,9 @@ function renderReviewCard(item, deps) {
         ${dateStr ? `<span class="item-date">${escHtml(dateStr)}</span>` : ""}
       </div>
 
-      ${item.context?.sectionTitle ? `
+      ${section ? `
   <div class="item-section">
-    ${escHtml(item.context.sectionTitle)}
+    ${escHtml(section)}
   </div>
 ` : ""}
 
