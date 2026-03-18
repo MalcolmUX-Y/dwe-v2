@@ -601,6 +601,18 @@ html, body {
 /* --- Utilities --------------------------------------------- */
 .muted  { color: var(--ink-dim); }
 .hidden { display: none !important; }
+
+.container-group-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 24px 0 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
 .section-label {
   font-family: var(--mono);
   font-size: 10px;
