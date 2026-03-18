@@ -13,13 +13,13 @@ function isObviousMetadata(text) {
   const lower = text.toLowerCase();
 
   if (
-  lower.startsWith("referat") ||
-  (
-    lower.includes("referat") &&
-    lower.includes("dato") &&
-    lower.includes("deltagere")
-  )
-) {
+    lower.startsWith("referat") ||
+    (
+      lower.includes("referat") &&
+      lower.includes("dato") &&
+      lower.includes("deltagere")
+    )
+  ) {
     return true;
   }
 
@@ -77,8 +77,8 @@ function getItemMeta(item) {
       return { icon: "✓", label: "Decision", className: "kind-decision" };
     default:
       return { icon: "📝", label: "Note", className: "kind-context" };
-  } 
-  
+  }
+
 }
 
 function groupReviewItems(items) {
@@ -130,11 +130,10 @@ function renderSection(title, items, deps, options = {}) {
     <section class="review-section">
       <div class="section-label">${title}</div>
       <div class="item-list">
-        ${
-          items.length
-            ? items.map((item) => renderReviewCard(item, deps)).join("")
-            : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
-        }
+        ${items.length
+      ? items.map((item) => renderReviewCard(item, deps)).join("")
+      : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
+    }
       </div>
     </section>
   `;
@@ -182,9 +181,41 @@ function getKindCounts(items) {
 
 export function renderReviewStep(state, deps) {
   const doc = state.parseResult?.document;
-  const items = flattenItems(doc);
-  const groups = groupReviewItems(items);
+  if (!doc) return "";
+
+  const { escHtml, formatDate } = deps;
+
+  const containers = doc.containers ?? [];
+  const orphanItems = doc.orphanItems ?? [];
+
+  const allItems = [
+    ...containers.flatMap(c => c.items),
+    ...orphanItems,
+  ];
+
+  const groups = groupReviewItems(allItems);
   const counts = getKindCounts(groups.ready);
+
+  const renderContainer = (label, items) => {
+    if (!items.length) return "";
+    const filtered = items.filter(i => getText(i));
+    if (!filtered.length) return "";
+    return `
+      <div class="container-group">
+        <div class="container-group-label">${escHtml(label)}</div>
+        <div class="item-list">
+          ${filtered.map(item => renderReviewCard(item, deps)).join("")}
+        </div>
+      </div>`;
+  };
+
+  const containerSections = containers
+    .map(c => renderContainer(c.label ?? "Untitled", c.items))
+    .join("");
+
+  const orphanSection = orphanItems.length
+    ? renderContainer("Ungrouped", orphanItems)
+    : "";
 
   return `
     <div>
@@ -195,7 +226,7 @@ export function renderReviewStep(state, deps) {
       </p>
     </div>
 
-        <div class="review-kind-bar">
+    <div class="review-kind-bar">
       <div class="review-kind-pill">⚡ ${counts.action} actions</div>
       <div class="review-kind-pill">📅 ${counts.deadline} deadlines</div>
       <div class="review-kind-pill">✓ ${counts.decision} decisions</div>
@@ -203,34 +234,24 @@ export function renderReviewStep(state, deps) {
 
     <div class="summary-box">
       <div>
-        <p class="summary-stat-label">Ready</p>
-        <p class="summary-stat-value">${groups.ready.length}</p>
+        <p class="summary-stat-label">Containers</p>
+        <p class="summary-stat-value">${containers.length}</p>
       </div>
       <div>
-        <p class="summary-stat-label">Needs review</p>
-        <p class="summary-stat-value">${groups.review.length}</p>
+        <p class="summary-stat-label">Items</p>
+        <p class="summary-stat-value">${allItems.length}</p>
       </div>
       <div>
-        <p class="summary-stat-label">Hidden</p>
-        <p class="summary-stat-value">${groups.hidden.length}</p>
+        <p class="summary-stat-label">Ungrouped</p>
+        <p class="summary-stat-value">${orphanItems.length}</p>
       </div>
     </div>
 
-    ${renderSection("Ready for workflow", groups.ready, deps, {
-      emptyText: "No clear workflow items detected yet."
-    })}
-
-    ${renderSection("Needs review", groups.review, deps, {
-      emptyText: "No ambiguous items need review."
-    })}
-
-    ${renderSection("Hidden / low priority", groups.hidden, deps, {
-      emptyText: "No low-priority items hidden."
-    })}
+    ${containerSections}
+    ${orphanSection}
 
     <div class="actions" style="margin-top:8px">
       <button class="btn btn-ghost" id="backBtn">← Back</button>
       <button class="btn btn-primary" id="continueBtn">Confirm →</button>
-    </div>
-  `;
+    </div>`;
 }
