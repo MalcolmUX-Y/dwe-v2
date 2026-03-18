@@ -1,293 +1,308 @@
 # Document Workflow Engine (DWE)
 
-Transform documents into structured, actionable workflows.
+**DWE v2.2 — Baseline**
 
-Document Workflow Engine interprets everyday documents — meeting notes, plans, reports — and converts them into structured workflow items such as actions, deadlines, and decisions.
+A deterministic engine that converts unstructured documents into structured workflow data.
 
-Instead of summarising text, DWE extracts operational signals and presents them as a workflow that can be reviewed before export.
+DWE does not summarise text.
+It interprets operational signals and reconstructs them as actionable workflow items.
 
 ---
 
-# Why this exists
+# What DWE does
 
-Most documents already contain operational information:
+DWE processes documents such as:
 
-* tasks
+* meeting notes
+* project plans
+* reports
+* schedules
+
+And extracts structured items:
+
+* actions
 * deadlines
 * decisions
-* responsibilities
-* meetings
+* context
 
-But this information is buried in prose and formatting.
-
-DWE automatically interprets that structure and produces a **reviewable workflow**.
+The result is a **reviewable workflow**, not generated text.
 
 ---
 
-# What makes DWE different
+# Core idea
 
-Most AI document tools generate summaries.
+Most documents already contain workflow information — but hidden in prose.
 
-DWE does something else:
+DWE makes it explicit:
 
 ```
-Document
-→ interpret structure
-→ extract operational signals
-→ confirm workflow
-→ export structured tasks
+Text
+→ detect signals
+→ extract structure
+→ assemble workflow
+→ review
 ```
-
-The output is **structured workflow data**, not text.
 
 ---
 
 # Example
 
-Input document:
+Input:
 
 ```
-Anna kontakter leverandøren senest 6 marts.
-Næste møde afholdes 18 marts.
-Anna indkalder senest 14 marts.
+Anna kontakter leverandøren senest 2026-03-17.
+David opdaterer risikolog senest 2026-03-19.
+Næste møde afholdes 2026-03-25.
 ```
 
-DWE interprets:
+Output:
 
 ```
-⚡ Action
-Anna contacts supplier
-Deadline: 2026-03-06
-
-📅 Meeting
-Next meeting
-Date: 2026-03-18
-
-⚡ Action
-Send meeting invitation
+📅 Deadline
 Responsible: Anna
-Deadline: 2026-03-14
+Task: Kontakter leverandøren
+Date: 2026-03-17
+
+📅 Deadline
+Responsible: David
+Task: Opdaterer risikolog
+Date: 2026-03-19
+
+📝 Context
+Næste møde afholdes 2026-03-25
 ```
 
 ---
 
-# Current pipeline
+# Pipeline (v2.2)
+
+DWE is a **deterministic pipeline**:
 
 ```
 document
-→ segmenter
-→ clause splitter
-→ classifier
-→ extractor
-→ grouper
-→ UI review
+→ segment
+→ clause
+→ classify
+→ extract
+→ group
+→ review
 ```
 
-Where:
+### Stages
 
-| Stage           | Purpose                                    |
-| --------------- | ------------------------------------------ |
-| Segmenter       | split document into meaningful blocks      |
-| Clause splitter | detect multiple signals in one sentence    |
-| Classifier      | identify type (action, deadline, decision) |
-| Extractor       | extract fields (date, responsible, etc.)   |
-| Grouper         | assemble workflow items                    |
-| UI Review       | confirm interpretation                     |
+| Stage           | Role                                                 |
+| --------------- | ---------------------------------------------------- |
+| Segmenter       | splits document into structural blocks               |
+| Clause splitter | separates multiple signals in one sentence           |
+| Classifier      | assigns type (action, deadline, decision, context)   |
+| Extractor       | extracts structured fields (date, responsible, text) |
+| Grouper         | assembles items into containers                      |
+| Review          | presents result for confirmation                     |
 
 ---
 
-# Frontend workflow
+# Key properties
 
-The user interface follows four steps:
+### Deterministic
+
+Same input → same output
+No probabilistic guessing in the core pipeline
+
+---
+
+### Traceable
+
+Every item can be traced directly back to source text
+
+---
+
+### No hidden inference
+
+If the system is uncertain, it returns `unknown`
+It does not fabricate structure
+
+---
+
+### Layer separation
+
+Each stage has a single responsibility
+No stage compensates for another
+
+---
+
+# What makes DWE different
+
+Most tools:
+
+```
+Document → AI → summary
+```
+
+DWE:
+
+```
+Document → structured workflow → review → export
+```
+
+Output is **data**, not text.
+
+---
+
+# Frontend flow
 
 ```
 1 Upload document
-2 Parse document
-3 Review extracted workflow
-4 Export workflow
+2 Parse
+3 Review workflow
+4 Export
 ```
 
-Step 3 is critical:
-the system proposes a workflow and the user confirms it.
+Step 3 is mandatory — the system proposes, the user confirms.
 
 ---
 
 # Current status
 
-Current version: **DWE v2.0.2**
+**Version: DWE v2.2 — Baseline**
 
-Major capabilities now include:
+This version includes:
 
-### Multi-item extraction
+### Stable classification model
 
-Multiple workflow signals can be extracted from a single sentence.
+* correct separation of:
 
----
+  * action vs context
+  * event vs obligation
+  * passive vs active constructions
 
-### Workflow review interface
+### Multi-clause extraction
 
-Step 3 now groups items into:
+* multiple items per sentence supported
 
-```
-Ready
-Needs review
-Hidden
-```
+### Responsible detection
 
-This allows users to quickly confirm the operational interpretation.
+* works for:
 
----
+  * named agents (`Anna kontakter`)
+  * active verbs without modal markers
 
-### Workflow signal detection
+### Meeting/event handling
 
-The system detects workflow signals such as:
+* distinguishes:
 
-```
-⚡ Action
-📅 Deadline
-✓ Decision
-📝 Context
-```
+  * event assertions → context
+  * agent-driven events → action
 
----
+### Deadline logic
 
-### Workflow summary
+* handles:
 
-The interface also provides a quick interpretation overview:
-
-```
-⚡ 3 actions
-📅 4 deadlines
-✓ 1 decision
-```
+  * obligation + constraint (`skal … inden`)
+  * named agent + active verb + date (`Anna kontakter … senest`)
 
 ---
 
-### Modular UI architecture
+# What is NOT solved
 
-Frontend code is now separated into:
+This is a baseline — not a finished system.
 
-```
-app.js
-review.js
-```
+Known limitations:
 
-Where:
-
-* `app.js` manages application flow
-* `review.js` handles workflow review logic
+* limited handling of roles (`teamet`, `vi`)
+* no semantic linking between items
+* confidence is not calibrated across document types
+* no advanced ambiguity resolution
 
 ---
 
 # Tech stack
 
-Frontend
+**Frontend**
 
 * HTML
 * CSS
-* Vanilla JavaScript
+* Vanilla JS
 
-Document extraction
-
-* PDF.js
-* Mammoth.js
-
-Parsing
+**Parsing**
 
 * Supabase Edge Functions
 * Deno / TypeScript
 
-Deployment
+**Document ingestion**
 
-* GitHub Pages
-
----
-
-# Supported document types
-
-DWE works best with documents containing implicit operational structure:
-
-* meeting minutes
-* course schedules
-* project descriptions
-* agendas
-* reports with action points
-* contracts
-* planning documents
+* PDF.js
+* Mammoth.js
 
 ---
 
 # Design principles
 
-### Local parser first
+### Parser-first architecture
 
-The rule-based parser is the core of the system.
-This ensures predictable behaviour and independence from external AI services.
+The system is rule-based at its core.
+AI is not required for normal operation.
 
 ---
 
-### AI is optional
+### AI as fallback (optional)
 
-AI can be used as a fallback when the local parser cannot confidently interpret a segment.
+AI may be introduced later for:
+
+* normalization
+* ambiguity resolution
+
+Never for core parsing.
 
 ---
 
 ### Human-in-the-loop
 
-Documents are ambiguous.
-Instead of pretending full automation is possible, DWE introduces a **review stage** where the workflow can be verified.
+DWE does not assume correctness.
+All workflows are reviewed before use.
 
 ---
 
-# Next development steps
+# What v2.2 represents
 
-The next iteration focuses on improving workflow curation.
+DWE v2.2 is:
 
-### Item-level controls
+> The first **stable, end-to-end deterministic workflow extraction engine**
 
-Allow users to hide or promote extracted items during review.
+It marks the transition from:
 
----
-
-### Workflow relations
-
-Introduce lightweight relationships between items, enabling structured workflows instead of flat lists.
-
-Example:
-
-```
-Meeting
-  ├─ Next meeting: 18.03
-  └─ Action: Send invitation before 14.03
-```
+* experimentation
+  → to
+* system behaviour
 
 ---
 
-### Structured export
+# Next phase
 
-Export workflows as structured data that can integrate with external tools.
+Focus shifts from correctness → robustness
+
+### Upcoming focus
+
+* noisy real-world documents
+* incomplete sentences
+* role-based agents
+* structural variation
+
+Goal:
+
+> Identify where the system breaks — and why
 
 ---
 
-# Long-term vision
-
-DWE is evolving from a document parser into a **document-to-workflow engine**.
-
-Future architecture:
+# Long-term direction
 
 ```
 Document
 → Workflow
-→ Integration layer
+→ Structured data
 → External systems
 ```
 
-Potential integrations:
-
-* project management tools
-* calendars
-* task managers
-* knowledge systems
+DWE is moving toward a **document-to-workflow infrastructure layer**
 
 ---
 
