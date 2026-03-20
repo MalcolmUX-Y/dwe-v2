@@ -202,9 +202,10 @@ function renderGroupedItems(items, itemContainerMap, deps) {
 
   return [...groups.entries()].map(([key, groupItems]) => {
     const label = key === "__ungrouped__" ? null : key;
+    const showLabel = label && groupItems.length > 1;
     return `
       <div class="container-group">
-        ${label ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
+        ${showLabel ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
         <div class="item-list">
           ${groupItems.map(i => renderReviewCard(i, deps)).join("")}
         </div>
