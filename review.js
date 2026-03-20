@@ -36,6 +36,10 @@ function isRelevantNote(text) {
   return /^(?:intet til|ingen bemærkninger|ingen kommentarer)/i.test(text.toLowerCase());
 }
 
+function isVagueActionText(text) {
+  return /\bdette\s*$/i.test(text.trim());
+}
+
 function isTautologicalWorkflowText(text) {
   const t = text.trim();
   return /^(?:deadline|tidsfrist)\b/i.test(t) || /^(?:deadline|tidsfrist|frist)\s+er\b/i.test(t);
@@ -103,6 +107,7 @@ function groupReviewItems(items) {
 
     if (isStatusLine(text)) { review.push(item); continue; }
     if (hasWorkflowKind(item) && isTautologicalWorkflowText(text)) { review.push(item); continue; }
+    if (hasWorkflowKind(item) && isVagueActionText(text)) { review.push(item); continue; }
     if (hasWorkflowKind(item)) { ready.push(item); continue; }
     if (strongSignals) { review.push(item); continue; }
     if (relevantNote) { review.push(item); continue; }
