@@ -14,6 +14,7 @@ function isObviousMetadata(text) {
 
   if (
     lower.startsWith("referat") ||
+    lower.startsWith("deltagere:") ||
     (
       lower.includes("referat") &&
       lower.includes("dato") &&
@@ -89,33 +90,16 @@ function groupReviewItems(items) {
   for (const item of items) {
     const text = getText(item);
 
-    if (!text) {
-      hidden.push(item);
-      continue;
-    }
-
-    if (isObviousMetadata(text)) {
-      hidden.push(item);
-      continue;
-    }
+    if (!text) { hidden.push(item); continue; }
+    if (isObviousMetadata(text)) { hidden.push(item); continue; }
 
     const relevantNote = isRelevantNote(text);
     const strongSignals = hasStrongSignals(item);
 
-    if (hasWorkflowKind(item)) {
-      ready.push(item);
-      continue;
-    }
-
-    if (strongSignals) {
-      review.push(item);
-      continue;
-    }
-
-    if (relevantNote) {
-      review.push(item);
-      continue;
-    }
+    if (isStatusLine(text)) { review.push(item); continue; }
+    if (hasWorkflowKind(item)) { ready.push(item); continue; }
+    if (strongSignals) { review.push(item); continue; }
+    if (relevantNote) { review.push(item); continue; }
 
     hidden.push(item);
   }
@@ -244,8 +228,8 @@ export function renderReviewStep(state, deps) {
     <section class="review-section">
       <div class="section-label">✅ Klar til workflow <span class="section-count">${groups.ready.length}</span></div>
       ${groups.ready.length
-        ? renderGroupedItems(groups.ready, itemContainerMap, deps)
-        : `<p class="muted" style="padding:16px 0">Ingen items klar til workflow.</p>`}
+      ? renderGroupedItems(groups.ready, itemContainerMap, deps)
+      : `<p class="muted" style="padding:16px 0">Ingen items klar til workflow.</p>`}
     </section>`;
 
   const reviewSection = groups.review.length ? `
