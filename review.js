@@ -179,43 +179,80 @@ function getKindCounts(items) {
   };
 }
 
+// Build a map from item → container label, for secondary grouping within sections
+function buildItemContainerMap(doc) {
+  const map = new Map();
+  for (const c of doc?.containers ?? []) {
+    for (const item of c.items ?? []) {
+      map.set(item, c.label ?? null);
+    }
+  }
+  return map;
+}
+
+// Render a group of items, optionally sub-grouped by container label
+function renderGroupedItems(items, itemContainerMap, deps) {
+  const { escHtml } = deps;
+
+  // Check if any item belongs to a named container
+  const hasContainers = items.some(i => itemContainerMap.get(i));
+
+  if (!hasContainers) {
+    return `<div class="item-list">${items.map(i => renderReviewCard(i, deps)).join("")}</div>`;
+  }
+
+  // Group by container label, preserving order of first appearance
+  const groups = new Map(); // label → items[]
+  for (const item of items) {
+    const label = itemContainerMap.get(item) ?? null;
+    const key = label ?? "__ungrouped__";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+
+  return [...groups.entries()].map(([key, groupItems]) => {
+    const label = key === "__ungrouped__" ? null : key;
+    return `
+      <div class="container-group">
+        ${label ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
+        <div class="item-list">
+          ${groupItems.map(i => renderReviewCard(i, deps)).join("")}
+        </div>
+      </div>`;
+  }).join("");
+}
+
 export function renderReviewStep(state, deps) {
   const doc = state.parseResult?.document;
   if (!doc) return "";
 
-  const { escHtml, formatDate } = deps;
+  const { escHtml } = deps;
 
   const containers = doc.containers ?? [];
   const orphanItems = doc.orphanItems ?? [];
 
   const allItems = [
-    ...containers.flatMap(c => c.items),
+    ...containers.flatMap(c => c.items ?? []),
     ...orphanItems,
   ];
 
   const groups = groupReviewItems(allItems);
   const counts = getKindCounts(groups.ready);
+  const itemContainerMap = buildItemContainerMap(doc);
 
-  const renderContainer = (label, items) => {
-    if (!items.length) return "";
-    const filtered = items.filter(i => getText(i));
-    if (!filtered.length) return "";
-    return `
-      <div class="container-group">
-        <div class="container-group-label">${escHtml(label)}</div>
-        <div class="item-list">
-          ${filtered.map(item => renderReviewCard(item, deps)).join("")}
-        </div>
-      </div>`;
-  };
+  const readySection = `
+    <section class="review-section">
+      <div class="section-label">✅ Klar til workflow <span class="section-count">${groups.ready.length}</span></div>
+      ${groups.ready.length
+        ? renderGroupedItems(groups.ready, itemContainerMap, deps)
+        : `<p class="muted" style="padding:16px 0">Ingen items klar til workflow.</p>`}
+    </section>`;
 
-  const containerSections = containers
-    .map(c => renderContainer(c.label ?? "Untitled", c.items))
-    .join("");
-
-  const orphanSection = orphanItems.length
-    ? renderContainer("Ungrouped", orphanItems)
-    : "";
+  const reviewSection = groups.review.length ? `
+    <section class="review-section">
+      <div class="section-label">🔍 Kræver gennemsyn <span class="section-count">${groups.review.length}</span></div>
+      ${renderGroupedItems(groups.review, itemContainerMap, deps)}
+    </section>` : "";
 
   return `
     <div>
@@ -234,21 +271,21 @@ export function renderReviewStep(state, deps) {
 
     <div class="summary-box">
       <div>
-        <p class="summary-stat-label">Containers</p>
-        <p class="summary-stat-value">${containers.length}</p>
+        <p class="summary-stat-label">Klar</p>
+        <p class="summary-stat-value">${groups.ready.length}</p>
       </div>
       <div>
-        <p class="summary-stat-label">Items</p>
-        <p class="summary-stat-value">${allItems.length}</p>
+        <p class="summary-stat-label">Gennemsyn</p>
+        <p class="summary-stat-value">${groups.review.length}</p>
       </div>
       <div>
-        <p class="summary-stat-label">Ungrouped</p>
-        <p class="summary-stat-value">${orphanItems.length}</p>
+        <p class="summary-stat-label">Skjult</p>
+        <p class="summary-stat-value">${groups.hidden.length}</p>
       </div>
     </div>
 
-    ${containerSections}
-    ${orphanSection}
+    ${readySection}
+    ${reviewSection}
 
     <div class="actions" style="margin-top:8px">
       <button class="btn btn-ghost" id="backBtn">← Back</button>
