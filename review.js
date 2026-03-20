@@ -55,9 +55,9 @@ function hasWorkflowKind(item) {
 
 function hasWorkflowScore(item) {
   return (
-    (item?.scores?.action ?? 0) >= 0.25 ||
-    (item?.scores?.deadline ?? 0) >= 0.25 ||
-    (item?.scores?.decision ?? 0) >= 0.25
+    (item?.scores?.action ?? 0) > 0.25 ||
+    (item?.scores?.deadline ?? 0) > 0.25 ||
+    (item?.scores?.decision ?? 0) > 0.25
   );
 }
 
