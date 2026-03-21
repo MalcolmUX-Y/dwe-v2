@@ -182,6 +182,12 @@ function buildItemContainerMap(doc) {
       map.set(item, c.label ?? null);
     }
   }
+  // Orphan items are explicitly marked — not left as absent keys.
+  // This allows the render layer to treat them as a named category
+  // rather than as items that simply have no container.
+  for (const item of doc?.orphanItems ?? []) {
+    map.set(item, "__standalone__");
+  }
   return map;
 }
 
@@ -206,10 +212,15 @@ function renderGroupedItems(items, itemContainerMap, deps) {
   }
 
   return [...groups.entries()].map(([key, groupItems]) => {
-    const label = key === "__ungrouped__" ? null : key;
+    const isStandalone = key === "__standalone__";
+    const label = (key === "__ungrouped__" || isStandalone) ? null : key;
     const showLabel = label && groupItems.length > 1;
+    const standaloneLabel = isStandalone
+      ? `<div class="container-group-label container-group-label--standalone">Standalone findings</div>`
+      : "";
     return `
       <div class="container-group">
+        ${standaloneLabel}
         ${showLabel ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
         <div class="item-list">
           ${groupItems.map(i => renderReviewCard(i, deps)).join("")}
