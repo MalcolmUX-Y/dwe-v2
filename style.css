@@ -613,6 +613,33 @@ html, body {
   margin-top: 8px;
 }
 
+.container-group--standalone {
+  margin-top: 40px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.container-group-label--standalone {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 4px;
+  border-top: none;
+  padding: 0;
+  margin-top: 0;
+}
+
+.container-group-label--standalone + .standalone-desc {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
 .section-label {
   font-family: var(--mono);
   font-size: 10px;
