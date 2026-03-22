@@ -633,7 +633,7 @@ html, body {
   margin-top: 0;
 }
 
-.container-group-label--standalone + .standalone-desc {
+.standalone-desc {
   font-size: 12px;
   color: var(--ink-faint);
   margin-bottom: 20px;
