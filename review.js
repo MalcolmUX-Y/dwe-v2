@@ -103,28 +103,24 @@ function sortByDisplayPriority(items) {
 function groupReviewItems(items) {
   const ready = [];
   const review = [];
-  const hidden = [];
 
   for (const item of items) {
     const text = getText(item);
 
-    if (!text) { hidden.push(item); continue; }
-    if (isObviousMetadata(text)) { hidden.push(item); continue; }
+    // Items uden tekst er ikke meningsfulde at vise — men de skjules ikke;
+    // de filtreres fra listen helt, så de ikke optager plads i review.
+    if (!text) continue;
 
-    const relevantNote = isRelevantNote(text);
-    const strongSignals = hasStrongSignals(item);
-
+    if (isObviousMetadata(text)) { review.push(item); continue; }
     if (isStatusLine(text)) { review.push(item); continue; }
     if (hasWorkflowKind(item) && isTautologicalWorkflowText(text)) { review.push(item); continue; }
     if (hasWorkflowKind(item) && isVagueActionText(text)) { review.push(item); continue; }
     if (hasWorkflowKind(item)) { ready.push(item); continue; }
-    if (strongSignals) { review.push(item); continue; }
-    if (relevantNote) { review.push(item); continue; }
 
-    hidden.push(item);
+    review.push(item);
   }
 
-  return { ready, review, hidden };
+  return { ready, review, hidden: [] };
 }
 
 function renderSection(title, items, deps, options = {}) {
