@@ -91,6 +91,15 @@ function getItemMeta(item) {
 
 }
 
+function sortByDisplayPriority(items) {
+  const priority = { deadline: 0, action: 1, decision: 2 };
+  return [...items].sort((a, b) => {
+    const pa = priority[a.kind] ?? Infinity;
+    const pb = priority[b.kind] ?? Infinity;
+    return pa - pb;
+  });
+}
+
 function groupReviewItems(items) {
   const ready = [];
   const review = [];
@@ -212,6 +221,7 @@ function renderGroupedItems(items, itemContainerMap, deps) {
   }
 
   return [...groups.entries()].map(([key, groupItems]) => {
+    const sortedGroupItems = sortByDisplayPriority(groupItems);
     const isStandalone = key === "__standalone__";
     const label = (key === "__ungrouped__" || isStandalone) ? null : key;
     const showLabel = label && groupItems.length > 1;
@@ -224,7 +234,7 @@ function renderGroupedItems(items, itemContainerMap, deps) {
         ${standaloneLabel}
         ${showLabel ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
         <div class="item-list">
-          ${groupItems.map(i => renderReviewCard(i, deps)).join("")}
+          ${sortedGroupItems.map(i => renderReviewCard(i, deps)).join("")}
         </div>
       </div>`;
   }).join("");
