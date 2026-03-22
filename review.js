@@ -216,10 +216,11 @@ function renderGroupedItems(items, itemContainerMap, deps) {
     const label = (key === "__ungrouped__" || isStandalone) ? null : key;
     const showLabel = label && groupItems.length > 1;
     const standaloneLabel = isStandalone
-      ? `<div class="container-group-label container-group-label--standalone">Standalone findings</div>`
+      ? `<div class="container-group-label container-group-label--standalone">Standalone findings</div>
+         <p class="standalone-desc">Items without a clear structural grouping.</p>`
       : "";
     return `
-      <div class="container-group">
+      <div class="container-group${isStandalone ? " container-group--standalone" : ""}">
         ${standaloneLabel}
         ${showLabel ? `<div class="container-group-label">${escHtml(label)}</div>` : ""}
         <div class="item-list">
