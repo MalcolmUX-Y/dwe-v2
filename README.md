@@ -378,14 +378,3 @@ DWE is moving toward a **document-to-workflow infrastructure layer**
 
 Yves
 ```
-
-Min vurdering: den her er meget tættere på din nuværende README’s form end det, jeg gjorde før, men den er stadig lidt mere præcis og moden i “Current status” og “What v2.4 represents” end v2.2-versionen var. Det passer bedre til, hvor projektet faktisk er nu.
-
-Det eneste sted, hvor der stadig er et reelt valg, er versionsnavnet i undertitlen. Jeg ville selv vælge en af disse tre:
-
-- **DWE v2.4 — Conservative validation baseline**
-- **DWE v2.4 — Stable validation baseline**
-- **DWE v2.4 — Deterministic workflow baseline**
-
-Den første er den mest sandfærdige i forhold til det arbejde, I faktisk lige har gjort.
-````
