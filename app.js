@@ -123,6 +123,25 @@ async function extractText(file) {
 // ------------------------------------------------------------
 
 async function callEdgeFunction(text, session) {
+  console.log("[parse:start]", {
+    fileName: state.file?.name,
+    hasText: !!text,
+    textLength: text?.length ?? 0,
+    preview: text?.slice(0, 120),
+  });
+  const payload = {
+    text,
+    options: {
+      source: state.file?.name ?? "document",
+      useAi: state.useAi,
+    },
+  };
+
+  console.log("[parse:request]", {
+    url: EDGE_URL,
+    payload,
+  });
+
   const response = await fetch(EDGE_URL, {
     method: "POST",
     headers: {
@@ -130,17 +149,24 @@ async function callEdgeFunction(text, session) {
       "apikey": SUPABASE_ANON_KEY,
       "Authorization": `Bearer ${session?.access_token ?? SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({
-      text,
-      options: {
-        source: state.file?.name ?? "document",
-        useAi: state.useAi,
-      },
-    }),
+    body: JSON.stringify(payload),
   });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error || "Parse request failed.");
+  const raw = await response.text();
+  console.log("[parse:response]", {
+    status: response.status,
+    ok: response.ok,
+    raw,
+  });
+
+  let data = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    data = null;
+  }
+
+  if (!response.ok) throw new Error(data?.error || raw || "Parse request failed.");
   return data;
 }
 
@@ -427,7 +453,7 @@ function bindEvents() {
   document.getElementById("restartBtn")?.addEventListener("click", () => {
     Object.assign(state, {
       step: 1, file: null, fileText: null,
-      parseResult: null,
+      parseResult: null, filterKind: "all",
       parsing: false, parseError: null,
     });
     renderApp();
@@ -435,6 +461,14 @@ function bindEvents() {
 
   // Parse button
   document.getElementById("parseBtn")?.addEventListener("click", runParse);
+
+  // Filter buttons
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.filterKind = btn.dataset.kind;
+      renderApp();
+    });
+  });
 
   // Export
   document.getElementById("exportTxtBtn")?.addEventListener("click", exportTxt);
