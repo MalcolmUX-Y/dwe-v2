@@ -142,15 +142,19 @@ async function callEdgeFunction(text, session) {
     payload,
   });
 
+  const headers = {
+    "Content-Type": "application/json",
+    "apikey": SUPABASE_ANON_KEY,
+    ...(session?.access_token
+      ? { "Authorization": `Bearer ${session.access_token}` }
+      : {}),
+  };
+
+  console.log("[parse:headers]", headers);
+
   const response = await fetch(EDGE_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      ...(session?.access_token
-        ? { "Authorization": `Bearer ${session.access_token}` }
-        : {}),
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 
