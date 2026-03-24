@@ -151,6 +151,7 @@ async function callEdgeFunction(text, session) {
   };
 
   console.log("[parse:headers]", headers);
+  console.log("[parse:auth]", headers.Authorization);
 
   const response = await fetch(EDGE_URL, {
     method: "POST",
