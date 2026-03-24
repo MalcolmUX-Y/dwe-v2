@@ -143,12 +143,9 @@ async function callEdgeFunction(text, session) {
   });
 
   const headers = {
-    "Content-Type": "application/json",
-    "apikey": SUPABASE_ANON_KEY,
-    ...(session?.access_token
-      ? { "Authorization": `Bearer ${session.access_token}` }
-      : {}),
-  };
+  "Content-Type": "application/json",
+  "apikey": SUPABASE_ANON_KEY,
+};
 
   console.log("[parse:headers]", headers);
   console.log("[parse:auth]", headers.Authorization);
