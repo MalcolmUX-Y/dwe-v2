@@ -1,17 +1,24 @@
 // ============================================================
-// Document Workflow Engine — app.js v2.0
+// Document Workflow Engine — app.js v3.0
 // Vanilla JS, no framework. ES modules.
+//
+// v3.0 changes:
+//   - Uses display-state for export rendering
+//   - Imports shared renderReviewCard from review.js
+//   - Removes duplicate card renderer
+//   - Export functions use display-state labels
 // ============================================================
 
-import { renderReviewStep } from "./review.js";
+import { renderReviewStep, renderReviewCard } from "./review.js";
+import { getItemDisplay } from "./display-state.js";
 
 // ------------------------------------------------------------
 // Config
 // ------------------------------------------------------------
 
-const SUPABASE_URL      = "https://flecimbpfuzlflyvgjrk.supabase.co";
+const SUPABASE_URL = "https://flecimbpfuzlflyvgjrk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsZWNpbWJwZnV6bGZseXZnanJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4Mjg4MTksImV4cCI6MjA4ODQwNDgxOX0.Wcifm_Wjjm1olJefkzOhP2_ZBuDVkqMIB2gGIGpYpZQ";
-const EDGE_URL          = `${SUPABASE_URL}/functions/v1/analyze-course`;
+const EDGE_URL = `${SUPABASE_URL}/functions/v1/analyze-course`;
 
 const STEPS = ["Upload", "Parse", "Review", "Export"];
 
@@ -20,15 +27,15 @@ const STEPS = ["Upload", "Parse", "Review", "Export"];
 // ------------------------------------------------------------
 
 const state = {
-  step:          1,
-  file:          null,
-  fileText:      null,
-  parseResult:   null,
-  filterKind:    "all",
-  useAi:         false,
-  parsing:       false,
-  parseError:    null,
-  session:       null,
+  step: 1,
+  file: null,
+  fileText: null,
+  parseResult: null,
+  filterKind: "all",
+  useAi: false,
+  parsing: false,
+  parseError: null,
+  session: null,
 };
 
 // ------------------------------------------------------------
@@ -57,7 +64,7 @@ function getFileType(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf") || file.type === "application/pdf") return "pdf";
   if (name.endsWith(".docx")) return "docx";
-  if (name.endsWith(".txt")  || file.type === "text/plain") return "txt";
+  if (name.endsWith(".txt") || file.type === "text/plain") return "txt";
   return null;
 }
 
@@ -70,7 +77,7 @@ async function extractText(file) {
 
   if (type === "docx") {
     if (!window.mammoth) throw new Error("Mammoth.js not loaded.");
-    const buf    = await file.arrayBuffer();
+    const buf = await file.arrayBuffer();
     const result = await window.mammoth.extractRawText({ arrayBuffer: buf });
     if (!result.value?.trim()) throw new Error("No text found in DOCX.");
     return result.value;
@@ -86,11 +93,11 @@ async function extractText(file) {
 
     const pages = [];
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page    = await pdf.getPage(i);
+      const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const lines   = [];
-      let   lastY   = null;
-      let   line    = [];
+      const lines = [];
+      let lastY = null;
+      let line = [];
 
       for (const item of content.items) {
         if (!("str" in item) || !item.str.trim()) continue;
@@ -117,17 +124,17 @@ async function extractText(file) {
 
 async function callEdgeFunction(text, session) {
   const response = await fetch(EDGE_URL, {
-    method:  "POST",
+    method: "POST",
     headers: {
-      "Content-Type":  "application/json",
-      "apikey":        SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${session?.access_token ?? SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({
       text,
       options: {
         source: state.file?.name ?? "document",
-        useAi:  state.useAi,
+        useAi: state.useAi,
       },
     }),
   });
@@ -158,22 +165,10 @@ function formatDate(dateObj) {
   return dateObj.dateHint || null;
 }
 
-function confClass(c) {
-  if (c >= 0.8) return "conf-high";
-  if (c >= 0.45) return "conf-mid";
-  return "conf-low";
-}
-
-function confLabel(c) {
-  if (c >= 0.8) return "high";
-  if (c >= 0.45) return "medium";
-  return "low";
-}
-
 function renderStepNav() {
   const nav = document.getElementById("stepNav");
   nav.innerHTML = STEPS.map((label, i) => {
-    const n      = i + 1;
+    const n = i + 1;
     const status = n === state.step ? "is-active" : n < state.step ? "is-done" : "";
     return `
       <div class="step ${status}" aria-current="${n === state.step ? "step" : "false"}">
@@ -181,51 +176,6 @@ function renderStepNav() {
         <span class="step-label">${label}</span>
       </div>`;
   }).join("");
-}
-
-function renderKindChip(kind) {
-  return `<span class="kind-chip kind-${kind}">${kind}</span>`;
-}
-
-function renderConfidenceBar(confidence) {
-  const pct = Math.round(confidence * 100);
-  return `
-    <div class="confidence-bar-wrap">
-      <div class="confidence-bar">
-        <div class="confidence-bar-fill ${confClass(confidence)}"
-             style="width:${pct}%"></div>
-      </div>
-      <span class="confidence-label">${confLabel(confidence)}</span>
-    </div>`;
-}
-
-function renderItemCard(item) {
-  const dateStr = formatDate(item.date);
-  const respStr = item.responsible?.label ?? null;
-
-  return `
-    <article class="item-card">
-      <div class="item-card-header">
-        ${dateStr ? `<span class="item-date">${escHtml(dateStr)}</span>` : ""}
-      </div>
-
-      <p class="item-text">${escHtml(item.text || "—")}</p>
-
-      ${(respStr || item.confidence != null) ? `
-        <div class="item-meta">
-          ${respStr ? `
-            <div class="item-meta-field">
-              <span class="item-meta-field-label">Responsible</span>
-              <span>${escHtml(respStr)}</span>
-            </div>` : ""}
-        </div>
-      ` : ""}
-
-      <details class="source-toggle">
-        <summary>Source text</summary>
-        <pre>${escHtml(item.sourceText || "")}</pre>
-      </details>
-    </article>`;
 }
 
 // ------------------------------------------------------------
@@ -241,15 +191,15 @@ function renderApp() {
   screen.className = "screen";
 
   switch (state.step) {
-    case 1: screen.innerHTML = renderUpload();    break;
-    case 2: screen.innerHTML = renderParse();     break;
+    case 1: screen.innerHTML = renderUpload(); break;
+    case 2: screen.innerHTML = renderParse(); break;
     case 3:
-  screen.innerHTML = renderReviewStep(state, {
-    escHtml,
-    formatDate
-  });
-  break;
-    case 4: screen.innerHTML = renderExport();    break;
+      screen.innerHTML = renderReviewStep(state, {
+        escHtml,
+        formatDate
+      });
+      break;
+    case 4: screen.innerHTML = renderExport(); break;
     default: screen.innerHTML = renderUpload();
   }
 
@@ -261,7 +211,7 @@ function renderApp() {
 
 function renderUpload() {
   const hasFile = !!state.file;
-  const type    = hasFile ? getFileType(state.file) : null;
+  const type = hasFile ? getFileType(state.file) : null;
 
   return `
     <div>
@@ -278,8 +228,8 @@ function renderUpload() {
       <div class="upload-icon">↑</div>
       <p class="upload-label">
         ${hasFile
-          ? `<strong>${escHtml(state.file.name)}</strong>`
-          : `<strong>Choose file</strong> or drag and drop`}
+      ? `<strong>${escHtml(state.file.name)}</strong>`
+      : `<strong>Choose file</strong> or drag and drop`}
       </p>
       <p class="upload-hint">PDF · DOCX · TXT</p>
     </div>
@@ -317,9 +267,9 @@ function renderUpload() {
 
 function renderParse() {
   const statusLabel =
-    state.parsing    ? "Parsing…"   :
-    state.parseError ? "Failed"     :
-    state.parseResult ? "Completed" : "Ready";
+    state.parsing ? "Parsing…" :
+      state.parseError ? "Failed" :
+        state.parseResult ? "Completed" : "Ready";
 
   return `
     <div>
@@ -339,8 +289,8 @@ function renderParse() {
       <div class="status-row">
         <strong>Status</strong>
         ${state.parsing
-          ? `<span class="muted"><span class="spinner"></span> ${statusLabel}</span>`
-          : `<span class="muted">${statusLabel}</span>`}
+      ? `<span class="muted"><span class="spinner"></span> ${statusLabel}</span>`
+      : `<span class="muted">${statusLabel}</span>`}
       </div>
       ${state.parseResult ? `
         <div class="status-row">
@@ -375,11 +325,11 @@ function renderParse() {
 // --- Step 4: Export ---
 
 function renderExport() {
-  const doc   = state.parseResult?.document;
+  const doc = state.parseResult?.document;
   const items = [
-  ...(doc?.containers ?? []).flatMap(c => c.items),
-  ...(doc?.orphanItems ?? []),
-];
+    ...(doc?.containers ?? []).flatMap(c => c.items),
+    ...(doc?.orphanItems ?? []),
+  ];
 
   return `
     <div>
@@ -397,7 +347,7 @@ function renderExport() {
     </div>
 
     <div class="item-list">
-      ${items.map(renderItemCard).join("")}
+      ${items.map(item => renderReviewCard(item, { escHtml, formatDate })).join("")}
     </div>
 
     <div class="actions" style="margin-top:8px">
@@ -433,9 +383,9 @@ function renderLogin() {
 function bindEvents() {
   // File input
   document.getElementById("fileInput")?.addEventListener("change", e => {
-    state.file        = e.target.files?.[0] ?? null;
+    state.file = e.target.files?.[0] ?? null;
     state.parseResult = null;
-    state.parseError  = null;
+    state.parseError = null;
     renderApp();
   });
 
@@ -477,7 +427,7 @@ function bindEvents() {
   document.getElementById("restartBtn")?.addEventListener("click", () => {
     Object.assign(state, {
       step: 1, file: null, fileText: null,
-      parseResult: null, filterKind: "all",
+      parseResult: null,
       parsing: false, parseError: null,
     });
     renderApp();
@@ -485,14 +435,6 @@ function bindEvents() {
 
   // Parse button
   document.getElementById("parseBtn")?.addEventListener("click", runParse);
-
-  // Filter buttons
-  document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.filterKind = btn.dataset.kind;
-      renderApp();
-    });
-  });
 
   // Export
   document.getElementById("exportTxtBtn")?.addEventListener("click", exportTxt);
@@ -506,7 +448,7 @@ function bindEvents() {
 async function runParse() {
   if (!state.file) return;
 
-  state.parsing    = true;
+  state.parsing = true;
   state.parseError = null;
   renderApp();
 
@@ -519,33 +461,33 @@ async function runParse() {
     const result = await callEdgeFunction(text, state.session);
     state.parseResult = result;
     window._lastResult = result;
-    state.parsing     = false;
+    state.parsing = false;
     renderApp();
   } catch (err) {
-    state.parsing    = false;
+    state.parsing = false;
     state.parseError = err instanceof Error ? err.message : "Unknown error.";
     renderApp();
   }
 }
 
 // ------------------------------------------------------------
-// Export
+// Export — uses display-state for labels
 // ------------------------------------------------------------
 
 function exportTxt() {
-  const doc   = state.parseResult?.document;
+  const doc = state.parseResult?.document;
   if (!doc) return;
-  // Flatten containers + orphanItems
-const items = [
-  ...(doc.containers ?? []).flatMap(c => c.items),
-  ...(doc.orphanItems ?? []),
-];
+  const items = [
+    ...(doc.containers ?? []).flatMap(c => c.items),
+    ...(doc.orphanItems ?? []),
+  ];
 
   const lines = [`${doc.title}`, "=".repeat(48), ""];
 
   for (const item of items) {
+    const { meta } = getItemDisplay(item);
     const date = formatDate(item.date) ?? "—";
-    lines.push(`[${item.kind.toUpperCase()}] ${date}`);
+    lines.push(`[${meta.label.toUpperCase()}] ${date}`);
     lines.push(item.text);
     if (item.responsible?.label) lines.push(`Responsible: ${item.responsible.label}`);
     lines.push("");
@@ -557,14 +499,13 @@ const items = [
 function exportPdf() {
   const doc = state.parseResult?.document;
   if (!doc || !window.jspdf) return;
-  // Flatten containers + orphanItems
-const items = [
-  ...(doc.containers ?? []).flatMap(c => c.items),
-  ...(doc.orphanItems ?? []),
-];
+  const items = [
+    ...(doc.containers ?? []).flatMap(c => c.items),
+    ...(doc.orphanItems ?? []),
+  ];
 
   const { jsPDF } = window.jspdf;
-  const pdf       = new jsPDF({ unit: "mm", format: "a4" });
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const L = 15, R = 195, lh = 6;
   let y = 20;
 
@@ -574,17 +515,18 @@ const items = [
   pdf.text(doc.title, L, y); y += 12;
 
   for (const item of items) {
+    const { meta } = getItemDisplay(item);
     check();
     pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-    pdf.text(`[${item.kind.toUpperCase()}]  ${formatDate(item.date) ?? ""}`, L, y); y += lh;
+    pdf.text(`[${meta.label.toUpperCase()}]  ${formatDate(item.date) ?? ""}`, L, y); y += lh;
 
     pdf.setFontSize(11); pdf.setFont("helvetica", "bold");
     pdf.splitTextToSize(item.text, R - L).forEach(l => { check(); pdf.text(l, L, y); y += lh; });
 
     if (item.responsible?.label) {
-  pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-  pdf.text(`Responsible: ${item.responsible.label}`, L, y); y += lh;
-}
+      pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
+      pdf.text(`Responsible: ${item.responsible.label}`, L, y); y += lh;
+    }
     y += 4;
   }
 
@@ -593,8 +535,8 @@ const items = [
 
 function triggerDownload(content, filename, mime) {
   const blob = new Blob([content], { type: mime });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement("a"), { href: url, download: filename });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -604,7 +546,7 @@ function triggerDownload(content, filename, mime) {
 // ------------------------------------------------------------
 
 function formatBytes(bytes) {
-  if (bytes < 1024)        return `${bytes} B`;
+  if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
