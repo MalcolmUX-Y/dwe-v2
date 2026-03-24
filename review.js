@@ -1,9 +1,28 @@
-function flattenItems(doc) {
-  return [
-    ...(doc?.containers ?? []).flatMap((c) => c.items ?? []),
-    ...(doc?.orphanItems ?? []),
-  ];
-}
+// ============================================================
+// Document Workflow Engine — review.js
+// Version: 3.0.0
+//
+// Review step rendering. Uses the shared DisplayState model
+// from display-state.js instead of raw kind checks.
+//
+// v3.0 changes:
+//   - All kind === "deadline" references removed
+//   - Uses deriveDisplayState() for all presentation decisions
+//   - Counts and sorts by display-state, not raw kind
+//   - getItemMeta() replaced by getItemDisplay()
+//   - Shared card renderer used by both review and export
+// ============================================================
+
+import {
+  deriveDisplayState,
+  getItemDisplay,
+  sortByDisplayPriority,
+  getDisplayCounts,
+} from "./display-state.js";
+
+// ------------------------------------------------------------
+// Text helpers
+// ------------------------------------------------------------
 
 function getText(item) {
   return item?.text?.trim() || "";
@@ -32,10 +51,6 @@ function isObviousMetadata(text) {
   return false;
 }
 
-function isRelevantNote(text) {
-  return /^(?:intet til|ingen bemærkninger|ingen kommentarer)/i.test(text.toLowerCase());
-}
-
 function isVagueActionText(text) {
   return /\bdette\s*$/i.test(text.trim());
 }
@@ -45,60 +60,40 @@ function isTautologicalWorkflowText(text) {
   return /^(?:deadline|tidsfrist)\b/i.test(t) || /^(?:deadline|tidsfrist|frist)\s+er\b/i.test(t);
 }
 
-function hasWorkflowKind(item) {
-  return (
-    item?.kind === "action" ||
-    item?.kind === "deadline" ||
-    item?.kind === "decision"
-  );
+function isStatusLine(text) {
+  return /^(intet til|ingen bemærkninger|ingen kommentarer)/i.test(text);
 }
 
-function hasWorkflowScore(item) {
-  return (
-    (item?.scores?.action ?? 0) > 0.25 ||
-    (item?.scores?.deadline ?? 0) > 0.25 ||
-    (item?.scores?.decision ?? 0) > 0.25
-  );
+// ------------------------------------------------------------
+// Workflow relevance — now based on display-state
+// ------------------------------------------------------------
+
+/**
+ * An item is workflow-relevant if its display-state is
+ * anything other than "note". This replaces the old
+ * hasWorkflowKind() that checked for the phantom "deadline" kind.
+ */
+function isWorkflowRelevant(item) {
+  const state = deriveDisplayState(item);
+  return state !== "note";
 }
 
+/**
+ * Check if an item has strong signals (responsible, date,
+ * or workflow-relevant display-state).
+ */
 function hasStrongSignals(item) {
   return Boolean(
     item?.responsible?.label ||
     item?.date?.iso ||
     item?.date?.dateHint ||
-    hasWorkflowKind(item) ||
-    hasWorkflowScore(item)
+    isWorkflowRelevant(item)
   );
 }
 
-function isStatusLine(text) {
-  return /^(intet til|ingen bemærkninger|ingen kommentarer)/i.test(text);
-}
-function getItemMeta(item) {
-  if (isStatusLine(item.text || "")) {
-    return { icon: "📝", label: "Note", className: "kind-context" };
-  }
-  switch (item?.kind) {
-    case "action":
-      return { icon: "⚡", label: "Action", className: "kind-action" };
-    case "deadline":
-      return { icon: "📅", label: "Deadline", className: "kind-deadline" };
-    case "decision":
-      return { icon: "✓", label: "Decision", className: "kind-decision" };
-    default:
-      return { icon: "📝", label: "Note", className: "kind-context" };
-  }
-
-}
-
-function sortByDisplayPriority(items) {
-  const priority = { deadline: 0, action: 1, decision: 2 };
-  return [...items].sort((a, b) => {
-    const pa = priority[a.kind] ?? Infinity;
-    const pb = priority[b.kind] ?? Infinity;
-    return pa - pb;
-  });
-}
+// ------------------------------------------------------------
+// Item grouping for review
+// ------------------------------------------------------------
 
 function groupReviewItems(items) {
   const ready = [];
@@ -107,15 +102,13 @@ function groupReviewItems(items) {
   for (const item of items) {
     const text = getText(item);
 
-    // Items uden tekst er ikke meningsfulde at vise — men de skjules ikke;
-    // de filtreres fra listen helt, så de ikke optager plads i review.
     if (!text) continue;
 
     if (isObviousMetadata(text)) { review.push(item); continue; }
     if (isStatusLine(text)) { review.push(item); continue; }
-    if (hasWorkflowKind(item) && isTautologicalWorkflowText(text)) { review.push(item); continue; }
-    if (hasWorkflowKind(item) && isVagueActionText(text)) { review.push(item); continue; }
-    if (hasWorkflowKind(item)) { ready.push(item); continue; }
+    if (isWorkflowRelevant(item) && isTautologicalWorkflowText(text)) { review.push(item); continue; }
+    if (isWorkflowRelevant(item) && isVagueActionText(text)) { review.push(item); continue; }
+    if (isWorkflowRelevant(item)) { ready.push(item); continue; }
 
     review.push(item);
   }
@@ -123,27 +116,15 @@ function groupReviewItems(items) {
   return { ready, review, hidden: [] };
 }
 
-function renderSection(title, items, deps, options = {}) {
-  const { emptyText = "No items in this section." } = options;
+// ------------------------------------------------------------
+// Card rendering — shared by review and export (via export)
+// ------------------------------------------------------------
 
-  return `
-    <section class="review-section">
-      <div class="section-label">${title}</div>
-      <div class="item-list">
-        ${items.length
-      ? items.map((item) => renderReviewCard(item, deps)).join("")
-      : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
-    }
-      </div>
-    </section>
-  `;
-}
-
-function renderReviewCard(item, deps) {
+export function renderReviewCard(item, deps) {
   const { escHtml, formatDate } = deps;
   const dateStr = formatDate(item.date);
   const respStr = item.responsible?.label ?? null;
-  const meta = getItemMeta(item);
+  const { meta } = getItemDisplay(item);
 
   return `
     <article class="item-card">
@@ -171,12 +152,24 @@ function renderReviewCard(item, deps) {
   `;
 }
 
-function getKindCounts(items) {
-  return {
-    action: items.filter((item) => item?.kind === "action").length,
-    deadline: items.filter((item) => item?.kind === "deadline").length,
-    decision: items.filter((item) => item?.kind === "decision").length,
-  };
+// ------------------------------------------------------------
+// Section rendering
+// ------------------------------------------------------------
+
+function renderSection(title, items, deps, options = {}) {
+  const { emptyText = "No items in this section." } = options;
+
+  return `
+    <section class="review-section">
+      <div class="section-label">${title}</div>
+      <div class="item-list">
+        ${items.length
+      ? items.map((item) => renderReviewCard(item, deps)).join("")
+      : `<p class="muted" style="padding:24px 0">${emptyText}</p>`
+    }
+      </div>
+    </section>
+  `;
 }
 
 // Build a map from item → container label, for secondary grouping within sections
@@ -187,9 +180,6 @@ function buildItemContainerMap(doc) {
       map.set(item, c.label ?? null);
     }
   }
-  // Orphan items are explicitly marked — not left as absent keys.
-  // This allows the render layer to treat them as a named category
-  // rather than as items that simply have no container.
   for (const item of doc?.orphanItems ?? []) {
     map.set(item, "__standalone__");
   }
@@ -200,15 +190,13 @@ function buildItemContainerMap(doc) {
 function renderGroupedItems(items, itemContainerMap, deps) {
   const { escHtml } = deps;
 
-  // Check if any item belongs to a named container
   const hasContainers = items.some(i => itemContainerMap.get(i));
 
   if (!hasContainers) {
     return `<div class="item-list">${items.map(i => renderReviewCard(i, deps)).join("")}</div>`;
   }
 
-  // Group by container label, preserving order of first appearance
-  const groups = new Map(); // label → items[]
+  const groups = new Map();
   for (const item of items) {
     const label = itemContainerMap.get(item) ?? null;
     const key = label ?? "__ungrouped__";
@@ -236,6 +224,10 @@ function renderGroupedItems(items, itemContainerMap, deps) {
   }).join("");
 }
 
+// ------------------------------------------------------------
+// Main review step renderer
+// ------------------------------------------------------------
+
 export function renderReviewStep(state, deps) {
   const doc = state.parseResult?.document;
   if (!doc) return "";
@@ -251,7 +243,7 @@ export function renderReviewStep(state, deps) {
   ];
 
   const groups = groupReviewItems(allItems);
-  const counts = getKindCounts(groups.ready);
+  const counts = getDisplayCounts(groups.ready);
   const itemContainerMap = buildItemContainerMap(doc);
 
   const readySection = `
@@ -278,8 +270,10 @@ export function renderReviewStep(state, deps) {
     </div>
 
     <div class="review-kind-bar">
+      <div class="review-kind-pill">🔴 ${counts.urgent} urgent</div>
+      <div class="review-kind-pill">📅 ${counts.planned} planned</div>
+      <div class="review-kind-pill">📆 ${counts.windowed} time-bound</div>
       <div class="review-kind-pill">⚡ ${counts.action} actions</div>
-      <div class="review-kind-pill">📅 ${counts.deadline} deadlines</div>
       <div class="review-kind-pill">✓ ${counts.decision} decisions</div>
     </div>
 
