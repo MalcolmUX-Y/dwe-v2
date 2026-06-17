@@ -29,6 +29,8 @@ import type {
   TemporalBinding,
 } from "./types.ts";
 
+import { pooledMap } from "jsr:@std/async/pool";
+
 import {
   segmentPlainText,
   segmentPdfFragments,
@@ -320,11 +322,16 @@ async function runOnSegments(
 ): Promise<ParseResult> {
 
   // Step 1: process all segments into a flat Item[]
-  // AI calls are awaited individually to preserve order
+  // Concurrency limit of 5 — avoids rate-limiting the AI provider.
+  // pooledMap preserves document order, which the grouper requires.
+  const CONCURRENCY = 5;
   const processed: ProcessedClause[] = [];
 
-  for (const segment of segments) {
-    const results = await processSegment(segment, options);
+  for await (const results of pooledMap(
+    CONCURRENCY,
+    segments,
+    (segment) => processSegment(segment, options),
+  )) {
     processed.push(...results);
   }
 
