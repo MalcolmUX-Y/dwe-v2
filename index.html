@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Workflow Engine</title>
+
+  <!--
+    Content-Security-Policy should be set as an HTTP header by your server.
+    Example (adjust origins as needed):
+      Content-Security-Policy:
+        default-src 'self';
+        script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+        style-src  'self' https://fonts.googleapis.com;
+        font-src   https://fonts.gstatic.com;
+        connect-src 'self' https://*.supabase.co https://fonts.googleapis.com;
+  -->
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Geist:wght@300;400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!--
+    NOTE: Add Subresource Integrity (SRI) hashes to all external scripts
+    to protect against CDN compromise. Generate with:
+      openssl dgst -sha384 -binary <file> | openssl base64 -A
+    Then add: integrity="sha384-<hash>" crossorigin="anonymous"
+  -->
+
+  <!-- PDF.js — deferred so it does not block render -->
+  <script
+    defer
+    src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- Mammoth.js — DOCX extraction -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- Supabase JS v2 -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- jsPDF — PDF export -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    crossorigin="anonymous"
+  ></script>
+</head>
+<body>
+
+  <noscript>
+    <p style="padding:2rem;font-family:sans-serif">
+      Document Workflow Engine requires JavaScript to run.
+      Please enable JavaScript in your browser and reload this page.
+    </p>
+  </noscript>
+
+  <!-- Subtle grain texture overlay -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="shell">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logotype">DWE</span>
+        <span class="header-divider" aria-hidden="true"></span>
+        <span class="header-subtitle">Document Workflow Engine</span>
+      </div>
+      <nav id="stepNav" class="step-nav" aria-label="Progress steps"></nav>
+    </header>
+
+    <!--
+      Live region — announces step transitions to screen readers.
+      Content is set by renderApp() in app.js.
+    -->
+    <div
+      id="liveRegion"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+    ></div>
+
+    <!-- Main content -->
+    <main id="app" class="app"></main>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
