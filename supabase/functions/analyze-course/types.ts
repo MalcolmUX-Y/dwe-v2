@@ -21,11 +21,12 @@ export type Confidence = number;
 // What kind of statement is this?
 // ============================================================
 
-// BaseKind: the three possible identity categories for a
+// BaseKind: the four possible identity categories for a
 // workflow item. These describe what the statement IS.
 //
-// "deadline" is not here — it describes when something is
-// bound, not what it is. See TemporalBinding below.
+// "deadline" is promoted post-scoring via a promotion rule in
+// the classifier — KindScores remains 3-way (action/decision/context)
+// and deadline is not part of that competition.
 export type BaseKind =
   | "action"
   | "decision"
