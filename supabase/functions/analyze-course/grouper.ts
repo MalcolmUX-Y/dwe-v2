@@ -257,7 +257,7 @@ function inferContainerKind(anchor: Anchor, items: Item[]): ContainerKind {
   // Strong date signal with context/action items → likely a session
   if (anchor.kind === "date" && anchor.isoDate !== null) {
     const hasActionOrDeadline = items.some(
-      i => i.kind === "action"
+      (i) => i.kind === "action" || i.kind === "deadline"
     );
     if (hasActionOrDeadline) return "session";
   }
