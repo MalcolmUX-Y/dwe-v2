@@ -300,7 +300,8 @@ export function splitSegmentIntoClauses(segmentText: string): ClauseCandidate[] 
     const splitTexts = [text]
       .map((t) => t.trim())
       .filter(Boolean)
-      .filter((t) => !isBareListMarker(t));
+      .filter((t) => !isBareListMarker(t))
+      .flatMap((t) => splitCoordinatedWorkflowClause(t));
 
     if (splitTexts.length <= 1) {
       return [{ text, sourceText: text }];
@@ -371,7 +372,8 @@ export function splitSegmentIntoClauses(segmentText: string): ClauseCandidate[] 
   const expandedBuckets = buckets
     .map((text) => text.trim())
     .filter(Boolean)
-    .filter((text) => !isBareListMarker(text));
+    .filter((text) => !isBareListMarker(text))
+    .flatMap((text) => splitCoordinatedWorkflowClause(text));
 
   // Conservative safety gate:
   // only keep split if at least 2 buckets look workflow-relevant.
