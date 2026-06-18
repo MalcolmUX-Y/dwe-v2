@@ -666,8 +666,16 @@ export function classifySegment(text: string): ClassificationResult {
     }
   }
 
+  // Step 4b: Promote to deadline when temporal signal is strong and no named actor
+  // Confidence for promoted items uses deadlineRaw directly — not identity competition.
+  let overrideConfidence: number | null = null;
+  if (deadlineRaw >= 0.4 && actionRaw < 0.3 && kind !== "decision") {
+    kind = "deadline";
+    overrideConfidence = deadlineRaw;
+  }
+
   // Step 5: Compute confidence from kind scores
-  const confidence = computeConfidence(kindScores);
+  const confidence = overrideConfidence ?? computeConfidence(kindScores);
 
   // Step 6: Build temporal scores and binding
   const temporalScores: TemporalScores = {
