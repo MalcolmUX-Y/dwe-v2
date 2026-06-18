@@ -484,7 +484,7 @@ export function extractActionText(
 
   // Guard: resttekst efter dato-stripping er for kort til at være meningsfuld
   const residualWords = cleaned.split(/\s+/).filter(Boolean).length;
-  if (residualWords <= 3 && !/\d{4}-\d{2}-\d{2}/.test(cleaned)) {
+  if (residualWords <= 1 && !/\d{4}-\d{2}-\d{2}/.test(cleaned)) {
     return { text: "", confidence: 0 };
   }
 
