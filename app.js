@@ -1,8 +1,11 @@
 // ============================================================
 // Document Workflow Engine — app.js
-// Version: 3.1.0
+// Version: 3.2.0
 // Vanilla JS, no framework. ES modules.
 //
+// v3.2 changes:
+//   - Fixed: context/note items now included in TXT and PDF export (Notes section)
+//   - Fixed: confirm handler saves all items, not just ready workflow items
 // v3.1 changes:
 //   - Fixed: Authorization header now sends Bearer token from session
 //   - Fixed: Removed all console.log calls from callEdgeFunction
@@ -556,12 +559,10 @@ function bindEvents() {
     renderApp();
   });
 
-  // Step 3 confirm — saves the ready items before advancing
+  // Step 3 confirm — saves all items before advancing
   document.getElementById("confirmBtn")?.addEventListener("click", () => {
     if (state.parseResult) {
-      const allItems = getAllItems(state.parseResult);
-      const groups   = groupReviewItems(allItems);
-      state.confirmedItems = groups.ready;
+      state.confirmedItems = getAllItems(state.parseResult);
     }
     state.step = 4;
     renderApp();
@@ -627,16 +628,27 @@ function exportTxt() {
   const doc = state.parseResult?.document;
   if (!doc) return;
 
-  const items = state.confirmedItems ?? getAllItems(state.parseResult);
-  const lines = [`${doc.title}`, "=".repeat(48), ""];
+  const items         = state.confirmedItems ?? getAllItems(state.parseResult);
+  const workflowItems = items.filter(i => getItemDisplay(i).state !== "note");
+  const noteItems     = items.filter(i => getItemDisplay(i).state === "note");
+  const lines         = [`${doc.title}`, "=".repeat(48), ""];
 
-  for (const item of items) {
+  for (const item of workflowItems) {
     const { meta } = getItemDisplay(item);
     const date     = formatDate(item.date) ?? "—";
     lines.push(`[${meta.label.toUpperCase()}] ${date}`);
     lines.push(item.text ?? "");
     if (item.responsible?.label) lines.push(`Responsible: ${item.responsible.label}`);
     lines.push("");
+  }
+
+  if (noteItems.length > 0) {
+    lines.push("— Notes —", "");
+    for (const item of noteItems) {
+      lines.push(`[NOTE]`);
+      lines.push(item.text ?? "");
+      lines.push("");
+    }
   }
 
   triggerDownload(lines.join("\n"), `${doc.title}.txt`, "text/plain");
@@ -656,9 +668,11 @@ function exportPdf() {
     return;
   }
 
-  const items      = state.confirmedItems ?? getAllItems(state.parseResult);
-  const { jsPDF }  = window.jspdf;
-  const pdf        = new jsPDF({ unit: "mm", format: "a4" });
+  const items         = state.confirmedItems ?? getAllItems(state.parseResult);
+  const workflowItems = items.filter(i => getItemDisplay(i).state !== "note");
+  const noteItems     = items.filter(i => getItemDisplay(i).state === "note");
+  const { jsPDF }     = window.jspdf;
+  const pdf           = new jsPDF({ unit: "mm", format: "a4" });
   const L = 15, R = 195, lh = 6;
   let y = 20;
 
@@ -669,7 +683,7 @@ function exportPdf() {
   pdf.text(doc.title ?? "Untitled", L, y);
   y += 12;
 
-  for (const item of items) {
+  const renderItem = (item) => {
     const { meta } = getItemDisplay(item);
     checkPageBreak();
 
@@ -694,6 +708,17 @@ function exportPdf() {
     }
 
     y += 4;
+  };
+
+  workflowItems.forEach(renderItem);
+
+  if (noteItems.length > 0) {
+    checkPageBreak();
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("— Notes —", L, y);
+    y += lh + 2;
+    noteItems.forEach(renderItem);
   }
 
   pdf.save(`${doc.title ?? "workflow"}.pdf`);
