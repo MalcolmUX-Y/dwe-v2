@@ -322,7 +322,8 @@ function validateKind(
     }
 
     case "deadline": {
-      const hasDate = /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[./\-]\d{1,2}/.test(text);
+      const hasDate = /\b\d{4}-\d{2}-\d{2}\b/.test(text) ||
+        /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/.test(text);
       const hasMarker = DEADLINE_MARKER_PATTERN.test(text);
       if (!hasDate && !hasMarker) return "context";
       return "deadline";
