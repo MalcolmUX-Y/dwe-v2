@@ -346,6 +346,11 @@ function detectDeadlineSignal(text: string): number {
     score += 0.35;
   }
 
+  // Frist verb + bare month name (e.g., "afsluttes i juni") — explicit completion in named month
+  if (hasFristVerb && /\b(?:januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)\b/i.test(t)) {
+    score += 0.45;
+  }
+
   return clamp(score);
 }
 
