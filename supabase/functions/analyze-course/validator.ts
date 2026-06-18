@@ -144,7 +144,7 @@ const NUMERIC_DATE_PATTERN = /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/g;
 
 // Temporal binding markers — explicitly bind a date to an action or event
 const TEMPORAL_BINDING_PATTERN =
-  /\b(?:senest|inden|before|by|deadline|frist|afleveres?|afholdes|finder sted|takes place|scheduled|planlagt til|d\.|kl\.|på|until|no later than|due)\b/i;
+  /\b(?:senest|inden|before|by|deadline|frist|afleveres?|afholdes|finder sted|takes place|scheduled|planlagt til|d\.|kl\.|på|until|no later than|due|lukker|lukkes|slutter|afsluttet|ophører|udløber)\b/i;
 
 // Relative temporal markers — time reference without ISO date
 const RELATIVE_TEMPORAL_PATTERN =
@@ -359,7 +359,7 @@ function validateKind(
 
 // Deadline evidence: explicit constraint language in sourceText
 const DEADLINE_EVIDENCE_PATTERN =
-  /\b(?:senest|inden|before|by|deadline|frist|due|no later than|afleveres|afleveret|indsendes|underskrives|afsluttes|lukker)\b/i;
+  /\b(?:senest|inden|before|by|deadline|frist|due|no later than|afleveres|afleveret|indsendes|underskrives|afsluttes|lukker|lukkes|slutter|afsluttet|ophører|udløber)\b/i;
 
 // Scheduled evidence: explicit event/scheduling language
 const SCHEDULED_EVIDENCE_PATTERN =
