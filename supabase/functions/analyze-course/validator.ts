@@ -323,8 +323,9 @@ function validateKind(
 
     case "deadline": {
       const hasDate = /\b\d{4}-\d{2}-\d{2}\b/.test(text) ||
-        /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/.test(text);
-      const hasMarker = DEADLINE_MARKER_PATTERN.test(text);
+        /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/.test(text) ||
+        /\b\d{1,2}\.\s*(?:januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)\b/i.test(text);
+      const hasMarker = DEADLINE_MARKER_PATTERN.test(text) || TEMPORAL_BINDING_PATTERN.test(text);
       if (!hasDate && !hasMarker) return "context";
       return "deadline";
     }
