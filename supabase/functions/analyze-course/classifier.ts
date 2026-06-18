@@ -666,7 +666,7 @@ export function classifySegment(text: string): ClassificationResult {
     }
   }
 
-  // Step 4b: Promote to deadline when temporal signal is strong and no named actor
+  // Step 4b: Promote to deadline when temporal signal is strong and action signal is weak.
   // Confidence for promoted items uses deadlineRaw directly — not identity competition.
   let overrideConfidence: number | null = null;
   if (deadlineRaw >= 0.4 && actionRaw < 0.3 && kind !== "decision") {
