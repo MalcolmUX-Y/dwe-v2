@@ -284,18 +284,21 @@ function detectDeadlineSignal(text: string): number {
   const t = text.trim();
 
   const hasDate =
-    /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/.test(t);
+    /\b\d{4}-\d{2}-\d{2}\b/.test(t) ||
+    /\b\d{1,2}[./\-]\d{1,2}(?:[./\-]\d{2,4})?\b/.test(t) ||
+    /\b\d{1,2}\.\s*(?:januar|februar|marts|april|maj|juni|juli|august|september|oktober|november|december)\b/i.test(t);
 
   const hasFristVerb =
-    /\b(?:afleveres?|indsendes|underskrives|afsluttes|fremsendes|sendes|godkendes)\b/i.test(t);
+    /\b(?:afleveres?|afleveret|indsendes|indsendt|underskrives|underskrevet|afsluttes|afsluttet|fremsendes|sendes|godkendes)\b/i.test(t);
   const hasWeekday =
     /\b(?:mandag|tirsdag|onsdag|torsdag|fredag|lørdag|søndag|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(t);
   const hasConstraint =
     /\b(?:by|before|until|no later than|deadline|due|senest|frist|afleveres?|indsend)\b/i.test(t) ||
-    (/\b(inden)\b/i.test(t) && (hasDate || hasFristVerb || hasWeekday));
+    (/\b(?:inden)\b/i.test(t) && (hasDate || hasFristVerb || hasWeekday)) ||
+    /\binden udgangen af\b/i.test(t);
 
   const isLabelStyleDeadline =
-    /^(?:deadline|frist|due date|aflevering|submission date|dato)\s*:/i.test(t);
+    /^(?:deadline|frist|due date|aflevering|afleveringsfrist|submission date|dato)\s*:/i.test(t);
 
   // Explicit date pattern (language-agnostic number formats)
   if (hasDate) score += 0.40;
@@ -336,6 +339,11 @@ function detectDeadlineSignal(text: string): number {
   // Slight extra boost for explicit label + date
   if (isLabelStyleDeadline && hasDate) {
     score += 0.15;
+  }
+
+  // Closure verbs: explicitly bind a date to a closing event
+  if (/\b(?:lukker|lukkes|slutter|udløber|ophører)\b/i.test(t)) {
+    score += 0.35;
   }
 
   return clamp(score);
